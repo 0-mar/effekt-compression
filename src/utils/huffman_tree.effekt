@@ -1,73 +1,40 @@
 import src/utils/ascii_dictionary
+
 import heap
 
+/// A Huffman tree. Frequencies are not stored in the tree itself,
+/// they are only needed while building it and are kept as weights in the heap.
 type HuffmanTree {
-    Leaf(char: Byte, freq: Int)
-    Node(freq: Int, l: HuffmanTree, r: HuffmanTree)
+    Leaf(char: Byte)
+    Node(l: HuffmanTree, r: HuffmanTree)
 }
-
-def getFrequency(node: HuffmanTree) = {
-    node match {
-        case Node(f1, _, _) => {
-            f1
-        }
-        case Leaf(_, f1) => {
-            f1
-        }
-    }
-}
-
-def treePrioQueue(): Heap[HuffmanTree] = {
-    def treeCmp(t1: HuffmanTree, t2: HuffmanTree) = {
-        var freq1 = getFrequency(t1)
-        var freq2 = getFrequency(t2)
-
-        if (freq1 > freq2) {
-            Greater()
-        } else if (freq1 < freq2) {
-            Less()
-        } else {
-            Equal()
-        }
-    }
-
-    heap[HuffmanTree](box treeCmp)
-}
-
 
 /// Builds a Huffman tree from a frequency map.
 /// Return the root of the built Huffman tree.
 def build_tree(frequencyMap: AsciiDictionary[Int]): HuffmanTree = {
-    val prioQueue = treePrioQueue()
+    var prioQueue: Heap[HuffmanTree] = heap::empty()
 
     val (keys, size) = frequencyMap.keys()
 
     each(0, size) { i =>
         val char = keys.get(i)
-        var value = frequencyMap.get(char)
-        value match {
-          case Some(freq) => prioQueue.insert(Leaf(char, freq))
+        frequencyMap.get(char) match {
+          case Some(freq) => prioQueue = prioQueue.insert(Leaf(char), freq.toDouble)
           case None() => ()
         }
     }
 
-    while (prioQueue.size() > 1) {
-        with on[OutOfBounds].report
-        val node1 = prioQueue.deleteMin()
-        val node2 = prioQueue.deleteMin()
-
-        var freq1 = getFrequency(node1)
-        var freq2 = getFrequency(node2)
-
-        prioQueue.insert(Node(freq1 + freq2, node1, node2))
+    // Repeatedly combines the two subtrees with the smallest frequencies.
+    def combine(queue: Heap[HuffmanTree]): HuffmanTree = queue.extract match {
+        case None() => Leaf('a'.toInt.toByte) // empty input; never happens, since we only build trees for non-empty blocks
+        case Some((Weighted(node1, freq1), rest)) => rest.extract match {
+            case None() => node1
+            case Some((Weighted(node2, freq2), rest)) =>
+                combine(rest.insert(Node(node1, node2), freq1 + freq2))
+        }
     }
 
-    var root = Leaf('a'.toInt.toByte, -1)
-    report[OutOfBounds] {
-        root = prioQueue.findMin()
-    }
-
-    root
+    combine(prioQueue)
 }
 
 /// Builds a huffman-codes dictionary from a huffman tree.
@@ -78,9 +45,9 @@ def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
 
     def go(node: HuffmanTree, code: String): Unit = {
         node match {
-            case Leaf(char, _) =>
+            case Leaf(char) =>
                 map.update(char, Some(code))
-            case Node(_, l, r) => {
+            case Node(l, r) => {
                 go(l, code ++ "0")
                 go(r, code ++ "1")
             }
@@ -101,9 +68,9 @@ def huffman_serialize(root: HuffmanTree): String = {
     def preorder(node: HuffmanTree, treeString: String): String = {
         var result = treeString
         node match {
-            case Leaf(char, freq) =>
+            case Leaf(char) =>
                 result ++ "1|" ++ char.toInt.show ++ "|"
-            case Node(_, l, r) =>
+            case Node(l, r) =>
                 result = result ++ "0"
                 result = preorder(l, result)
                 result = preorder(r, result)
@@ -133,12 +100,12 @@ def huffman_deserialize(treeString: String): HuffmanTree = {
             }
             newIndex = newIndex + 1
             var convertedNum = result.toInt
-            (Leaf(convertedNum.toByte, 0), newIndex)
+            (Leaf(convertedNum.toByte), newIndex)
 
         } else {
             val (left, newIndex2) = build_tree(newIndex)
             val (right, newIndex3) = build_tree(newIndex2)
-            (Node(0, left, right), newIndex3)
+            (Node(left, right), newIndex3)
         }
     }
 

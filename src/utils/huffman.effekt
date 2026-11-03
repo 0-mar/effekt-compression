@@ -1,7 +1,6 @@
 import stream
 import io
 import io/error
-import heap
 import src/utils/ascii_dictionary
 import bytearray
 import src/utils/stream_io
@@ -263,10 +262,10 @@ def readContentsStream(headerData: HeaderData) = {
 
         while (not(done)) {
             node match {
-                case Leaf(char, _) =>
+                case Leaf(char) =>
                     do writeByte(char)
                     done = true
-                case Node(_, l, r) =>
+                case Node(l, r) =>
                     val bit = do readBit()
                     node = if (bit) r else l
             }

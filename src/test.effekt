@@ -32,8 +32,24 @@ def main() = mainSuite("lib") {
     assert(map.get('c'.toInt.toByte).value, "1100")
   }
 
+  test("HuffmanTree_Build") {
+    with on[MissingValue].default { assertTrue(false, "missing value") }
+
+    var frequencies = emptyDict[Int]()
+    frequencies.update('w'.toInt.toByte, Some(5))
+    frequencies.update('a'.toInt.toByte, Some(3))
+    frequencies.update('e'.toInt.toByte, Some(1))
+    frequencies.update('x'.toInt.toByte, Some(2))
+
+    val codes = huffmanCodes(build_tree(frequencies))
+    assert(codes.get('w'.toInt.toByte).value.length, 1)
+    assert(codes.get('a'.toInt.toByte).value.length, 2)
+    assert(codes.get('e'.toInt.toByte).value.length, 3)
+    assert(codes.get('x'.toInt.toByte).value.length, 3)
+  }
+
   test("HuffmanTree_Serialize") {
-    val tree = Node(11, Leaf('w'.toInt.toByte, 5), Node(6, Leaf('a'.toInt.toByte, 3), Node(3, Leaf('e'.toInt.toByte, 1), Leaf('x'.toInt.toByte, 2))))
+    val tree = Node(Leaf('w'.toInt.toByte), Node(Leaf('a'.toInt.toByte), Node(Leaf('e'.toInt.toByte), Leaf('x'.toInt.toByte))))
     val serialized_tree = huffman_serialize(tree)
     assert(serialized_tree, "01|119|01|97|01|101|1|120|")
   }
@@ -41,7 +57,7 @@ def main() = mainSuite("lib") {
   test("HuffmanTree_Deserialize_Serialize") {
     val serialized_tree = "01|119|01|97|01|101|1|120|"
     val deserialized_tree = huffman_deserialize(serialized_tree)
-    val tree = Node(0, Leaf('w'.toInt.toByte, 0), Node(0, Leaf('a'.toInt.toByte, 0), Node(0, Leaf('e'.toInt.toByte, 0), Leaf('x'.toInt.toByte, 0))))
+    val tree = Node(Leaf('w'.toInt.toByte), Node(Leaf('a'.toInt.toByte), Node(Leaf('e'.toInt.toByte), Leaf('x'.toInt.toByte))))
     assert(serialized_tree, huffman_serialize(tree))
   }
 
